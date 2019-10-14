@@ -4,6 +4,10 @@
 This week's focus is going to be on Ansible. We are going to fire up the servers we created last
 week on Google Cloud with Ansible to familiarize with automation and orchestrations techniques.
 
+References: 
+* [Ansible for
+  Devops(book)](https://www.ansible.com/hubfs/-2016-ebooks/ansible-for-devops-first-four-chapters.pdf)
+* [Official GCP documentation :github:](https://github.com/GoogleCloudPlatform/compute-video-demo-ansible)
 ## What is Ansible?
 
 Ansible is a automation and orchestration tool and engine, created to automate server creation in a
@@ -67,7 +71,7 @@ This can be easily done throught the GCP gui:
 - click create key
 - save the key to your project folder
 Having done so, there are 2 two possible ways to provide the credentials to Ansible:
-
+    * 
 Once the instances are created they could be accessed via ssh, upon enabling it with:
 
     $ gcloud  compute config-ssh

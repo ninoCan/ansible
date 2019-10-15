@@ -96,30 +96,30 @@ This can be easily done throught the GCP gui:
 Having done so, there are 2 two possible ways to provide the credentials to Ansible:
     *  **Module parameter specification**:
          In the the yml file we can specify the following variable as a subfield, eg.
-         ```yml
-         - name: Create IP address
-           hosts: localhost
+```yaml
+- name: Create IP address
+    hosts: localhost
            
-           vars:
-             #type of auth method used (machineaccount, serviceaccount, application)
-             auth_kind: serviceaccount
-             #email associated with the project
-             service_account_email: myemail@domain.com
-             #Path to JSON credentials
-             service_account_file: ./my_account.json
-             #id of the project:
-             project: my-project
-             #specific scope to use
-             scope: -
-         ```
+    vars:
+    #type of auth method used (machineaccount, serviceaccount, application)
+        auth_kind: serviceaccount
+        #email associated with the project
+        service_account_email: myemail@domain.com
+        #Path to JSON credentials
+        service_account_file: ./my_account.json
+        #id of the project:
+        project: my-project
+        #specific scope to use
+        scope: -
+```
  - **providing credentials as Environment Variables**:
    Just set the variable before running ansible:
-   ``` 
+``` 
    GCP_AUTH_KIND
    GCP_SERVICE_ACCOUNT_EMAIL
    GCP_SERVICE_ACCOUNT_FILE
    GCP_SCOPES
-   ```
+```
 Once the instances are created they could be accessed via ssh, upon enabling it with:
 
     $ gcloud  compute config-ssh

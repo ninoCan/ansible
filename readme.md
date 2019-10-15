@@ -145,7 +145,7 @@ going to be easy to reorchestrate the workflow even with no knowledge/memory of 
 *** 
 
 To create our first yml file we are going to fetch (or copy-paste) the `gce-instances.yml` file from
-the :fa-Github: [Google Cloud Github documentation][gcd].
+the :fa-github: [Google Cloud Github documentation][gcd].
 ```yml{.line-numbers}
 - name: Create Compute Engine instances
   hosts: local

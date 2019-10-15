@@ -96,7 +96,7 @@ This can be easily done throught the GCP gui:
 Having done so, there are 2 two possible ways to provide the credentials to Ansible:
     *  **Module parameter specification**:
          In the the yml file we can specify the following variable as a subfield, eg.
-```yaml
+```yaml {.line-numbers}
 - name: Create IP address
     hosts: localhost
            
@@ -114,7 +114,7 @@ Having done so, there are 2 two possible ways to provide the credentials to Ansi
 ```
  - **providing credentials as Environment Variables**:
    Just set the variable before running ansible:
-``` 
+```bash {.line-numbers} 
    GCP_AUTH_KIND
    GCP_SERVICE_ACCOUNT_EMAIL
    GCP_SERVICE_ACCOUNT_FILE
@@ -146,7 +146,7 @@ going to be easy to reorchestrate the workflow even with no knowledge/memory of 
 
 To create our first yml file we are going to fetch (or copy-paste) the `gce-instances.yml` file from
 the [Google Cloud Github documentation][gcd].
-```yml 
+```yml{.line-numbers}
 - name: Create Compute Engine instances
   hosts: local
   gather_facts: False

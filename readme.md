@@ -96,7 +96,7 @@ This can be easily done throught the GCP gui:
 Having done so, there are 2 two possible ways to provide the credentials to Ansible:
     *  **Module parameter specification**:
          In the the yml file we can specify the following variable as a subfield, eg.
-```yaml {.line-numbers}
+```yaml 
 - name: Create IP address
     hosts: localhost
            
@@ -114,7 +114,7 @@ Having done so, there are 2 two possible ways to provide the credentials to Ansi
 ```
  - **providing credentials as Environment Variables**:
    Just set the variable before running ansible:
-```bash {.line-numbers} 
+```bash  
    GCP_AUTH_KIND
    GCP_SERVICE_ACCOUNT_EMAIL
    GCP_SERVICE_ACCOUNT_FILE
@@ -124,15 +124,23 @@ Once the instances are created they could be accessed via ssh, upon enabling it 
 
     $ gcloud  compute config-ssh
 
+## Getting started with our project:
+
+**READ** Ansible's documentation [best
+practices](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html#directory-layout
+), [YAML syntax
+introduction](https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html#yaml-syntax
+). and [intro to
+playbooks](https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#about-playbooks ).
 
 ## Launch the first instances
 
-We are going to split the process in different yml files, these can then be called at once by
-regrouping them inside another yml file. Let's touch this first:
+We are going to split the process in different yaml files, these can then be called at once by
+regrouping them inside another yaml file. Let's touch this first:
 
-    $ echo "---" > all.yml
-    $ echo "# workflow to create instances" >> all.yml
-    $ echo "- include: crete-instances.yml"
+    $ echo "---" > site.yml
+    $ echo "# workflow to create instances" >> site.yml
+    $ echo "- include: crete-instances.yml" >> site.yml
 This `all.yml` file is going to be very simple and will be a mere collection of the ymls we are
 going to parse to `ansible-playbook`. They could be launched singularly, but in this way, it is
 going to be easy to reorchestrate the workflow even with no knowledge/memory of what has been done. Breaking down the meaning of these tree lines:
@@ -146,7 +154,7 @@ going to be easy to reorchestrate the workflow even with no knowledge/memory of 
 
 To create our first yml file we are going to fetch (or copy-paste) the `gce-instances.yml` file from
 the :fa-github: [Google Cloud Github documentation][gcd].
-```yml{.line-numbers}
+```yml
 - name: Create Compute Engine instances
   hosts: local
   gather_facts: False
@@ -228,5 +236,8 @@ the :fa-github: [Google Cloud Github documentation][gcd].
       add_host: hostname={{ gceb_ip.address }} groupname=gce_instances_ips
 ```
 
+Let's remove the `var_files` section and add a `vars:` instead:
+```yml
 
+```
 [gcd]:https://github.com/GoogleCloudPlatform/compute-video-demo-ansible/

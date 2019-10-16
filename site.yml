@@ -1,0 +1,3 @@
+---
+# workflow to create gcp instances and set them up
+- include: create-istances.yml

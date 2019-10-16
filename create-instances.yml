@@ -1,0 +1,95 @@
+- name: Create Compute Engine instances #naming the process
+  hosts: localhost
+  gather_facts: False
+  # vars_files:
+  #   - gce_vars/auth
+  #   - gce_vars/machines
+  #   - gce_vars/zone
+
+  vars:
+    service_account_email: n5602-ansible@dev2ops.iam.gserviceaccount.com
+    creds_file: ./dev2ops-a35263258c76.json    
+    project: dev2ops
+    machine_type: f1-micro
+    zone: europe-west1-b
+    region: europe-west1
+    backend: n5602-ansible-backend
+    database: n5602-ansible-database
+    auth_kind: serviceaccount
+    image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts
+    
+  tasks:
+    - name: Create an IP address for first instance
+      gcp_compute_address:
+        name: "{{backend}}"
+        region: "{{ region }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: backend_ip #capture the result of this task to the variable
+    - name: create instance for the backend.
+      gcp_compute_instance:
+        name: "{{ backend }}"
+        machine_type: "{{ machine_type }}"
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image: "{{ image }}"
+        network_interfaces:
+          - access_configs:
+              - name: External NAT
+                nat_ip: "{{ backend_ip }}"
+                type: ONE_TO_ONE_NAT
+        tags:
+          items:
+            - http-server
+            - https-server
+        zone: "{{ zone }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: backend
+      
+    - name: Create an IP address for second instance
+      gcp_compute_address:
+        name: "{{ database }}"
+        region: "{{ region }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: database_ip
+      
+    - name: create the instance for database.
+      gcp_compute_instance:
+        name: "{{ database }}"
+        machine_type: "{{ machine_type }}"
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image: "{{ image }}"
+        network_interfaces:
+          - access_configs:
+              - name: External NAT
+                nat_ip: "{{ database_ip }}"
+                type: ONE_TO_ONE_NAT
+        tags:
+          items:
+            - http-server
+            - https-server
+        zone: "{{ zone }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: database
+      
+  post_tasks:
+    - name: Wait for SSH for instances in first zone
+      wait_for: delay=1 host={{ backend_ip.address }} port=22 state=started timeout=30
+    - name: Save host data for first zone
+      add_host: hostname={{ backend_ip.address }} groupname=gce_instances_ips
+    - name: Wait for SSH for instances in second zone
+      wait_for: delay=1 host={{ database_ip.address }} port=22 state=started timeout=30
+    - name: Save host data for second zone
+      add_host: hostname={{ database_ip.address }} groupname=gce_instances_ips

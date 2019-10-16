@@ -236,8 +236,129 @@ the :fa-github: [Google Cloud Github documentation][gcd].
       add_host: hostname={{ gceb_ip.address }} groupname=gce_instances_ips
 ```
 
-Let's remove the `var_files` section and add a `vars:` instead:
+Let's remove the `var_files` section and add a `vars:` section instead, in this section we can
+define whatever variable we want to call later in this file. 
+To understand what the rest of the file is doing, one approach (maybe the most effective) is to
+perform a research 
+on the [ansible documentation about gcp
+](https://docs.ansible.com/ansible/latest/search.html?q=gcp&check_keywords=yes&area=default# )
+and look up for the specific yaml keywords. The end result should be a file
+looking like this
 ```yml
+- name: Create Compute Engine instances #naming the process
+  hosts: localhost
+  gather_facts: False
+  # vars_files:
+  #   - gce_vars/auth
+  #   - gce_vars/machines
+  #   - gce_vars/zone
 
+  vars:
+    service_account_email: n5602-ansible@dev2ops.iam.gserviceaccount.com
+    creds_file: ./<key_file>.json    
+    project: dev2ops
+    machine_type: f1-micro
+    zone: europe-west1-b
+    region: europe-west1
+    backend: n5602-ansible-backend
+    database: n5602-ansible-database
+    auth_kind: serviceaccount
+    image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts
+    
+  tasks:
+    - name: Create an IP address for first instance
+      gcp_compute_address:
+        name: "{{backend}}"
+        region: "{{ region }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: backend_ip #capture the result of this task to the variable
+    - name: create instance for the backend.
+      gcp_compute_instance:
+        name: "{{ backend }}"
+        machine_type: "{{ machine_type }}"
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image: "{{ image }}"
+        network_interfaces:
+          - access_configs:
+              - name: External NAT
+                nat_ip: "{{ backend_ip }}"
+                type: ONE_TO_ONE_NAT
+        tags:
+          items:
+            - http-server
+            - https-server
+        zone: "{{ zone }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: backend
+      
+    - name: Create an IP address for second instance
+      gcp_compute_address:
+        name: "{{ database }}"
+        region: "{{ region }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: database_ip
+      
+    - name: create the instance for database.
+      gcp_compute_instance:
+        name: "{{ database }}"
+        machine_type: "{{ machine_type }}"
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image: "{{ image }}"
+        network_interfaces:
+          - access_configs:
+              - name: External NAT
+                nat_ip: "{{ database_ip }}"
+                type: ONE_TO_ONE_NAT
+        tags:
+          items:
+            - http-server
+            - https-server
+        zone: "{{ zone }}"
+        project: "{{ project }}"
+        service_account_file: "{{ creds_file }}"
+        auth_kind: "{{ auth_kind }}"
+      register: database
+      
+  post_tasks:
+    - name: Wait for SSH for instances in first zone
+      wait_for: delay=1 host={{ backend_ip.address }} port=22 state=started timeout=30
+    - name: Save host data for first zone
+      add_host: hostname={{ backend_ip.address }} groupname=gce_instances_ips
+    - name: Wait for SSH for instances in second zone
+      wait_for: delay=1 host={{ database_ip.address }} port=22 state=started timeout=30
+    - name: Save host data for second zone
+      add_host: hostname={{ database_ip.address }} groupname=gce_instances_ips
+```
+
+## Dynamic inventory
+
+To define an inventory that track the machine we are going to use this
+[tutorial](http://matthieure.me/2018/12/31/ansible_inventory_plugin.html )
+and create this file:
+```yml
+plugin: gcp_compute
+projects:
+  - dev2ops
+account: serviceaccount
+service_account_file: ./<key-file>.json
+```
+and add this task in the `create-instances.yml` file:
+```yml
+tasks:
+  ...
+  -name: Refresh the inventory
+  -meta: refresh_inventory
 ```
 [gcd]:https://github.com/GoogleCloudPlatform/compute-video-demo-ansible/

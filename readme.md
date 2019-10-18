@@ -1,5 +1,5 @@
 # Ansible
-
+[gcd]:https://github.com/GoogleCloudPlatform/compute-video-demo-ansible/
 
 This week's focus is going to be on Ansible. We are going to fire up the servers we created last
 week on Google Cloud with Ansible to familiarize with automation and orchestrations techniques.
@@ -131,7 +131,8 @@ practices](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_pra
 ), [YAML syntax
 introduction](https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html#yaml-syntax
 ). and [intro to
-playbooks](https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#about-playbooks ).
+playbooks](https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html#about-playbooks
+) and this [short tutorial on writing playbooks by DigitalOcean](https://www.digitalocean.com/community/tutorials/configuration-management-101-writing-ansible-playbooks )
 
 ## Launch the first instances
 
@@ -346,19 +347,93 @@ looking like this
 
 To define an inventory that track the machine we are going to use this
 [tutorial](http://matthieure.me/2018/12/31/ansible_inventory_plugin.html )
-and create this file:
+First of all, we must tell ansible to use the library plugin for GCP, this is
+done by creating a `ansible.cfg` file with the following content:
+```
+[inventory]
+enable_plugins = gcp_compute
+```
+
+Then create this file:
 ```yml
+# inventory.gcp.yml
 plugin: gcp_compute
 projects:
   - dev2ops
 account: serviceaccount
 service_account_file: ./<key-file>.json
 ```
-and add this task in the `create-instances.yml` file:
+and add this task in the `create-instances.yml` file after having created all
+the instances:
 ```yml
 tasks:
   ...
   -name: Refresh the inventory
   -meta: refresh_inventory
 ```
-[gcd]:https://github.com/GoogleCloudPlatform/compute-video-demo-ansible/
+## setting the  YAML file
+By now, we have fired up our instances and now we want to go on and install
+docker on them and then load the images for managing a webapp front/backend 
+and a database. 
+### Roles
+The best way to automize task that are identical on different machines is
+by the mean of
+[Roles](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html
+).
+Roles are ways to automatically load certain vars_files, task or handlers;
+but to work properly we need to set a prefix directory structure.
+Therefore, let us create the folder roles:
+  
+  $ mkdir roles
+Inside this folder we will create the name of the various role we are going
+to use in the principal YAML file. For example, we want to install docker
+so we shall create the following folders:
+  
+  $ mkdir -p roles/docker/tasks
+Inside te tasks folder we create a `main.yml` file, which is going to
+automate the installation of docker and its dependencies.
+
+### Docker role
+
+Inside the `roles/docker/tasks` we are going to create the following `main.yml`
+```yml
+- name: Install docker dependencies
+  apt:
+    name: ['apt-transport-https', 'ca-certificates', 'curl', 'gnupg-agent', 'software-properties-common']
+    state: present
+
+- name: Add docker's key to the repo 
+  apt:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker repo
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu bionic stable
+    state: present
+
+- name: Update apt and install docker
+  apt:
+    update_cache: yes
+    name: ['docker-ce', 'docker-ce-cli', 'containerd.io']
+    state: latest
+
+- name: Start docker
+  service:
+    name: docker
+    state: started
+```
+This files mimicks the commands we used to install docker on the VM instances.
+
+> In order to debug the following:
+>    
+>    **fatal: [35.195.192.79]: UNREACHABLE! => {"changed": false, "msg": "Failed to
+>    connect to the host via ssh: Host key verification failed.", "unreachable":
+>    true}**
+> We are going to add, following this
+>    [thread](https://stackoverflow.com/questions/46929624/failed-to-connect-to-the-host-via-ssh-host-key-verification-failed-r-n/46933307
+>    ), we are going to add the next two lines to the `ansible.cnf` file:
+>
+>    [defaults]
+>    host_key_checking = False
+

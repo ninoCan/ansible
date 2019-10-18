@@ -1,1 +1,7 @@
 *.json
+.dumpbin
+group_vars/
+.git
+viija.uusiyritys.yml
+fetch-image.yml
+host_vars

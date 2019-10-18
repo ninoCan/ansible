@@ -1,0 +1,21 @@
+#install docker on the two instances
+- name: Installing docker on the VM instances
+  hosts: instances
+  become: true
+  become_method: sudo
+  roles:
+    - docker
+
+- name: Fetch docker image from GCR and launch container
+  hosts: back
+  become: true
+  become_method: sudo
+  roles:
+    - fetchDocker
+
+- name: launch mysql docker image  
+  hosts: data
+  become: true
+  become_method: sudo
+  roles:
+      - mysqlDocker

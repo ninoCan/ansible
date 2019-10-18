@@ -1,3 +1,5 @@
 ---
 # workflow to create gcp instances and set them up
-- include: create-istances.yml
+- import_playbook: create-instances.yml
+- import_playbook: get-docker.yml
+

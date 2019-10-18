@@ -1,13 +1,14 @@
 - name: Create Compute Engine instances #naming the process
-  hosts: localhost
-  gather_facts: False
+  hosts: localhost                      #define the hostmachine in which ansible runs
+  connection: local
+  gather_facts: False                   #controls that the fact modules are executed in serially in order
   # vars_files:
   #   - gce_vars/auth
   #   - gce_vars/machines
   #   - gce_vars/zone
 
-  vars:
-    service_account_email: n5602-ansible@dev2ops.iam.gserviceaccount.com
+  vars:                                 #define variables for later use
+    service_account_email: 533950723546-compute@developer.gserviceaccount.com #n5602-ansible@dev2ops.iam.gserviceaccount.com
     creds_file: ./dev2ops-a35263258c76.json    
     project: dev2ops
     machine_type: f1-micro
@@ -26,8 +27,9 @@
         project: "{{ project }}"
         service_account_file: "{{ creds_file }}"
         auth_kind: "{{ auth_kind }}"
-      register: backend_ip #capture the result of this task to the variable
-    - name: create instance for the backend.
+      register: backend_ip 
+      
+    - name: launch instance for the backend.
       gcp_compute_instance:
         name: "{{ backend }}"
         machine_type: "{{ machine_type }}"
@@ -49,6 +51,10 @@
         project: "{{ project }}"
         service_account_file: "{{ creds_file }}"
         auth_kind: "{{ auth_kind }}"
+        service_accounts:
+          - email: "{{ service_account_email }}"
+            scopes:
+              - https://www.googleapis.com/auth/devstorage.read_only
       register: backend
       
     - name: Create an IP address for second instance
@@ -60,7 +66,7 @@
         auth_kind: "{{ auth_kind }}"
       register: database_ip
       
-    - name: create the instance for database.
+    - name: launch instance for database.
       gcp_compute_instance:
         name: "{{ database }}"
         machine_type: "{{ machine_type }}"
@@ -81,15 +87,25 @@
         zone: "{{ zone }}"
         project: "{{ project }}"
         service_account_file: "{{ creds_file }}"
+        service_accounts:
+          - email: "{{ service_account_email }}"
+            scopes:
+              - https://www.googleapis.com/auth/devstorage.read_only
         auth_kind: "{{ auth_kind }}"
       register: database
+    - name: Refresh inventory
+      meta: refresh_inventory
       
   post_tasks:
     - name: Wait for SSH for instances in first zone
       wait_for: delay=1 host={{ backend_ip.address }} port=22 state=started timeout=30
     - name: Save host data for first zone
-      add_host: hostname={{ backend_ip.address }} groupname=gce_instances_ips
+      add_host: hostname={{ backend_ip.address }} groupname=instances
+    - name: Save host data for first zone
+      add_host: hostname={{ backend_ip.address }} groupname=back
     - name: Wait for SSH for instances in second zone
       wait_for: delay=1 host={{ database_ip.address }} port=22 state=started timeout=30
     - name: Save host data for second zone
-      add_host: hostname={{ database_ip.address }} groupname=gce_instances_ips
+      add_host: hostname={{ database_ip.address }} groupname=instances
+    - name: Save host data for second zone
+      add_host: hostname={{ database_ip.address }} groupname=data

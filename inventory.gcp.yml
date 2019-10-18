@@ -1,0 +1,10 @@
+plugin: gcp_compute
+projects:
+  - dev2ops
+
+auth_kind: serviceaccount
+service_account_file: ./dev2ops-a35263258c76.json
+keyed_groups:
+  - key: zone
+hostnames:
+  - name

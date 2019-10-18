@@ -1,0 +1,26 @@
+---
+- name: get the GCR token
+  become: false
+  shell: /snap/bin/gcloud auth print-access-token
+  register: gcr_token
+
+- name: log into GCR
+  docker_login:
+    username: oauth2accesstoken
+    password: "{{ gcr_token.stdout }}"
+    registry_url: eu.gcr.io/dev2ops
+
+
+- name: start docker container 
+  docker_container:
+    name: lapside
+    image: eu.gcr.io/dev2ops/n5602-lapsrv:1.0
+    ports:
+    - 8080:80
+    restart: yes
+    env:
+        DB_NAME=wordpress
+        DB_USER=dbuser
+        DB_PASSWORD=dbpass
+        DB_HOST="{{ hostvars[groups['data'][0]].ansible_default_ipv4.address }}" 
+    state: started
